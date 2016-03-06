@@ -11,7 +11,7 @@ int main(void)
    mpc_parser_t *Number, *Operator, *Expr, *Lispy;
    init_parsers(&Number, &Operator, &Expr, &Lispy);
 
-   puts("Lispy Version 0.0.0.0.2");
+   puts("Lispy Version 0.0.0.0.3");
    puts("Press Ctrl+C to Exit\n");
 
    while(1) {
