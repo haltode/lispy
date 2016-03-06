@@ -10,7 +10,7 @@ OBJ=$(addprefix $(OBJDIR)/, $(notdir $(SRC:.c=.o)))
 
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c99
-CLIB=-ledit
+CLIB=-lm -ledit
 CPPFLAGS=-I$(INCDIR)
 
 vpath %.c src
