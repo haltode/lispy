@@ -3,35 +3,49 @@
 
 #include "eval.h"
 
-long eval_op(char *op, long x, long y)
+lval eval_op(char *op, lval x, lval y)
 {
-   if(!strcmp(op, "+") || !strcmp(op, "add")) return x + y;
-   if(!strcmp(op, "-") || !strcmp(op, "sub")) return x - y;
-   if(!strcmp(op, "*") || !strcmp(op, "mul")) return x * y;
-   if(!strcmp(op, "/") || !strcmp(op, "div")) return x / y;
-   if(!strcmp(op, "%") || !strcmp(op, "mod")) return x % y;
-   if(!strcmp(op, "^") || !strcmp(op, "pow")) return pow(x, y);
-   if(!strcmp(op, "min")) return (x < y) ? x : y;
-   if(!strcmp(op, "max")) return (x > y) ? x : y;
+   // Return the lval in case it is an error
+   if(x.type == LVAL_ERR) return x;
+   if(y.type == LVAL_ERR) return y;
 
-   return 0;
+   // Possible operation
+   if(!strcmp(op, "+") || !strcmp(op, "add")) return lval_num(x.num + y.num);
+   if(!strcmp(op, "-") || !strcmp(op, "sub")) return lval_num(x.num - y.num);
+   if(!strcmp(op, "*") || !strcmp(op, "mul")) return lval_num(x.num * y.num);
+   if(!strcmp(op, "/") || !strcmp(op, "div"))
+      return y.num == 0 
+         ? lval_err(LERR_DIV_ZERO)
+         : lval_num(x.num / y.num);
+   if(!strcmp(op, "%") || !strcmp(op, "mod"))
+      return y.num == 0
+         ? lval_err(LERR_MOD_ZERO)
+         : lval_num(x.num % y.num);
+   if(!strcmp(op, "^") || !strcmp(op, "pow")) return lval_num(pow(x.num, y.num));
+   if(!strcmp(op, "min")) return x.num < y.num ? lval_num(x.num) : lval_num(y.num);
+   if(!strcmp(op, "max")) return x.num > y.num ? lval_num(x.num) : lval_num(y.num);
+
+   return lval_err(LERR_BAD_OP);
 }
 
-long eval(mpc_ast_t *token)
+lval eval(mpc_ast_t *token)
 {
-   // If it is a number, return it
-   if(strstr(token->tag, "number"))
-      return atoi(token->contents);
+   // If it is a number, check it and return it (or raise the error)
+   if(strstr(token->tag, "number")) {
+      errno = 0;
+      long x = strtol(token->contents, NULL, 10);
+      return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
+   }
 
    // Expression is either : number or ( op expr ... )
    char *op = token->children[1]->contents;
-   long x   = eval(token->children[2]);
+   lval x   = eval(token->children[2]);
 
    // Special case when we have : - num
    // We just want to get -num
    if(token->children_num == 4 && 
       (!strcmp(op, "-") || !strcmp(op, "sub")))
-      x = -x;
+      x.num = -x.num;
 
    int iChild = 3;
    while(strstr(token->children[iChild]->tag, "expr")) {

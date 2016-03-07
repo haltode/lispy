@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "prompt.h"
 #include "eval.h"
+#include "lval.h"
 
 int main(void)
 {
@@ -11,7 +12,7 @@ int main(void)
    mpc_parser_t *Number, *Operator, *Expr, *Lispy;
    init_parsers(&Number, &Operator, &Expr, &Lispy);
 
-   puts("Lispy Version 0.0.0.0.3");
+   puts("Lispy Version 0.0.0.0.4");
    puts("Press Ctrl+C to Exit\n");
 
    while(1) {
@@ -23,7 +24,7 @@ int main(void)
       // Parse the user input and evaluate it
       mpc_result_t res;
       if(mpc_parse("<stdin>", input, Lispy, &res)) {
-         printf("%li\n", eval(res.output));
+         lval_println(eval(res.output));
          mpc_ast_delete(res.output);
       }
       else {
