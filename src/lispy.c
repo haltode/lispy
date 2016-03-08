@@ -9,10 +9,10 @@
 int main(void)
 {
    // Create and init parsers
-   mpc_parser_t *Number, *Operator, *Expr, *Lispy;
-   init_parsers(&Number, &Operator, &Expr, &Lispy);
+   mpc_parser_t *Number, *Symbol, *Sexpr, *Expr, *Lispy;
+   init_parsers(&Number, &Symbol, &Sexpr, &Expr, &Lispy);
 
-   puts("Lispy Version 0.0.0.0.4");
+   puts("Lispy Version 0.0.0.0.5");
    puts("Press Ctrl+C to Exit\n");
 
    while(1) {
@@ -24,8 +24,9 @@ int main(void)
       // Parse the user input and evaluate it
       mpc_result_t res;
       if(mpc_parse("<stdin>", input, Lispy, &res)) {
-         lval_println(eval(res.output));
-         mpc_ast_delete(res.output);
+         lval *output = lval_eval(lval_read(res.output));
+         lval_println(output);
+         lval_del(output);
       }
       else {
          mpc_err_print(res.error);
@@ -36,7 +37,7 @@ int main(void)
    }
 
    // Undefine and delete parsers
-   mpc_cleanup(4, Number, Operator, Expr, Lispy);
+   mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Lispy);
 
    return 0;
 }

@@ -4,7 +4,10 @@
 #include "mpc.h"
 #include "lval.h"
 
-lval eval_op(char *op, lval x, lval y);
-lval eval(mpc_ast_t *token);
+lval *lval_eval_sexpr(lval *v);
+lval *lval_eval(lval *v);
+lval *lval_pop(lval *v, int iChild);
+lval *lval_take(lval *v, int iChild);
+lval *builtin_op(lval *a, char *op);
 
 #endif
