@@ -1,7 +1,7 @@
 PREFIX=.
 SRCDIR=$(PREFIX)/src
 INCDIR=$(PREFIX)/include
-BINDIR=$(PREFIX)/bin
+BINDIR=$(PREFIX)
 OBJDIR=$(PREFIX)/obj
 
 EXEC=$(BINDIR)/lispy
