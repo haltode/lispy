@@ -32,7 +32,7 @@ lval *lval_eval_sexpr(lval *v)
       return lval_err("S-expression does not start with symbol");
    }
 
-   lval *res = builtin_op(v, first->sym);
+   lval *res = builtin(v, first->sym);
    lval_del(first);
 
    return res;
@@ -127,4 +127,91 @@ lval *builtin_op(lval *arg, char *op)
    lval_del(arg);
 
    return x;
+}
+
+lval *builtin(lval *arg, char *func)
+{
+   if(!strcmp("list", func)) return builtin_list(arg);
+   if(!strcmp("head", func)) return builtin_head(arg);
+   if(!strcmp("tail", func)) return builtin_tail(arg);
+   if(!strcmp("join", func)) return builtin_join(arg);
+   if(!strcmp("eval", func)) return builtin_eval(arg);
+   if(strstr("+-*/%", func)) return builtin_op(arg, func);
+
+   lval_del(arg);
+   return lval_err("Unknown function");
+}
+
+lval *builtin_list(lval *arg)
+{
+   arg->type = LVAL_QEXPR;
+   return arg;
+}
+
+lval *builtin_head(lval *arg)
+{
+   LASSERT(arg, arg->count != 1,
+         "Function 'head' passed too many arguments");
+   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
+         "Function 'head' passed incorrect type");
+   LASSERT(arg, arg->cell[0]->count == 0,
+         "Function 'head' passed {}");
+
+   // Take the first argument and delete all the elements that are not the head
+   lval *first = lval_take(arg, 0);
+   while(first->count > 1)
+      lval_del(lval_pop(first, 1));
+   return first;
+}
+
+lval *builtin_tail(lval *arg)
+{
+   LASSERT(arg, arg->count != 1,
+      "Function 'tail' passed too many arguments");
+   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
+      "Function 'tail' passed incorrect type");
+   LASSERT(arg, arg->cell[0]->count == 0,
+      "Function 'tail' passed {}");
+
+   // Take the first argument and delete every elements until it reach the tail
+   lval *first = lval_take(arg, 0);
+   lval_del(lval_pop(first, 0));
+   return first;
+}
+
+lval *builtin_join(lval *arg)
+{
+   int iCell;
+   for(iCell = 0; iCell < arg->count; ++iCell)
+      LASSERT(arg, arg->cell[iCell]->type != LVAL_QEXPR,
+            "Function 'join' passed incorrect type");
+   
+   lval *x = lval_pop(arg, 0);
+   while(arg->count)
+      x = lval_join(x, lval_pop(arg, 0)); 
+
+   lval_del(arg);
+   return x;
+}
+
+lval *lval_join(lval *x, lval *y)
+{
+   // Add each y's cell to x
+   while(y->count)
+      x = lval_add(x, lval_pop(y, 0));
+
+   lval_del(y);
+   return x;
+}
+
+lval *builtin_eval(lval *arg)
+{
+   LASSERT(arg, arg->count != 1,
+         "Function 'eval' passed too many arguments");
+   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
+         "Function 'eval' passed incorrect type")
+
+   lval *x = lval_take(arg, 0);
+   x->type = LVAL_SEXPR;
+   return lval_eval(x);
 }

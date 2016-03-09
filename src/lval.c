@@ -32,6 +32,15 @@ lval *lval_sexpr(void)
    return v;
 }
 
+lval *lval_qexpr(void)
+{
+   lval *v  = malloc(sizeof(lval));
+   v->type  = LVAL_QEXPR;
+   v->cell  = NULL;
+   v->count = 0;
+   return v;
+}
+
 lval *lval_err(char *err)
 {
    lval *v = malloc(sizeof(lval));
@@ -51,6 +60,7 @@ void lval_del(lval *v)
          free(v->sym);
          break;
       case LVAL_SEXPR:
+      case LVAL_QEXPR:
          for(int iCell = 0; iCell < v->count; ++iCell)
             lval_del(v->cell[iCell]);
          free(v->cell);
@@ -79,10 +89,13 @@ lval *lval_read(mpc_ast_t *token)
    if(strstr(token->tag, "number")) return lval_read_num(token);
    if(strstr(token->tag, "symbol")) return lval_sym(token->contents);
 
-   // If this is a root (>) or an sexpr, then create an empty list that we'll fill
+   // If this is a root (>) or an sexpr/qexpr
+   // Then create an empty list that we'll fill
    lval *x = NULL;
    if(!strcmp(token->tag, ">") || strstr(token->tag, "sexpr")) 
       x = lval_sexpr();
+   if(strstr(token->tag, "qexpr"))
+      x = lval_qexpr();
 
    // Fill the list that we previously made using recursion
    int iChild;
@@ -128,6 +141,7 @@ void lval_print(lval *v)
       case LVAL_NUM   : printf("%li", v->num); break;
       case LVAL_SYM   : printf("%s", v->sym); break;
       case LVAL_SEXPR : lval_expr_print(v, '(', ')'); break;
+      case LVAL_QEXPR : lval_expr_print(v, '{', '}'); break;
       case LVAL_ERR   : printf("Error: %s!", v->err); break;
    }
 }

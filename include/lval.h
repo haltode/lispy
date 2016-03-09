@@ -17,7 +17,7 @@ struct lval {
 };
 
 // Possible lval types
-enum { LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_ERR };
+enum { LVAL_NUM, LVAL_SYM, LVAL_SEXPR, LVAL_QEXPR, LVAL_ERR };
 
 // Possible error types
 enum { LERR_DIV_ZERO, LERR_MOD_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
@@ -26,6 +26,7 @@ enum { LERR_DIV_ZERO, LERR_MOD_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
 lval *lval_num(long num);
 lval *lval_sym(char *sym);
 lval *lval_sexpr(void);
+lval *lval_qexpr(void);
 lval *lval_err(char *err);
 
 void lval_del(lval *v);

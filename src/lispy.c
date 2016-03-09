@@ -9,10 +9,10 @@
 int main(void)
 {
    // Create and init parsers
-   mpc_parser_t *Number, *Symbol, *Sexpr, *Expr, *Lispy;
-   init_parsers(&Number, &Symbol, &Sexpr, &Expr, &Lispy);
+   mpc_parser_t *Number, *Symbol, *Sexpr, *Qexpr, *Expr, *Lispy;
+   init_parsers(&Number, &Symbol, &Sexpr, &Qexpr, &Expr, &Lispy);
 
-   puts("Lispy Version 0.0.0.0.5");
+   puts("Lispy Version 0.0.0.0.6");
    puts("Press Ctrl+C to Exit\n");
 
    while(1) {
@@ -37,7 +37,7 @@ int main(void)
    }
 
    // Undefine and delete parsers
-   mpc_cleanup(5, Number, Symbol, Sexpr, Expr, Lispy);
+   mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Lispy);
 
    return 0;
 }
