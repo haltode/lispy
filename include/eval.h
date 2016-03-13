@@ -4,25 +4,33 @@
 #include "mpc.h"
 #include "lval.h"
 
-#define LASSERT(arg, cond, err) \
-   if(cond) {                \
-      lval_del(arg);            \
-      return lval_err(err);     \
+#define LASSERT(arg, cond, fmt, ...)            \
+   if(cond) {                                   \
+      lval *err = lval_err(fmt, ##__VA_ARGS__); \
+      lval_del(arg);                            \
+      return err;                               \
    }
 
-lval *lval_eval_sexpr(lval *v);
-lval *lval_eval(lval *v);
-lval *lval_pop(lval *v, int iChild);
-lval *lval_take(lval *v, int iChild);
+lval *lval_eval_sexpr(lenv *env, lval *val);
+lval *lval_eval(lenv *env, lval *val);
 
-lval *builtin_op(lval *a, char *op);
+lval *builtin_op(lenv *env, lval *arg, char *op);
+lval *builtin_eval(lenv *env, lval *arg);
 
-lval *builtin(lval *arg, char *func);
-lval *builtin_list(lval *arg);
-lval *builtin_head(lval *arg);
-lval *builtin_tail(lval *arg);
-lval *builtin_join(lval *arg);
-lval *lval_join(lval *x, lval *y);
-lval *builtin_eval(lval *arg);
+lval *builtin_def(lenv *env, lval *arg);
+
+lval *builtin_add(lenv *env, lval *arg);
+lval *builtin_sub(lenv *env, lval *arg);
+lval *builtin_mul(lenv *env, lval *arg);
+lval *builtin_div(lenv *env, lval *arg);
+lval *builtin_mod(lenv *env, lval *arg);
+lval *builtin_pow(lenv *env, lval *arg);
+lval *builtin_min(lenv *env, lval *arg);
+lval *builtin_max(lenv *env, lval *arg);
+
+lval *builtin_list(lenv *env, lval *arg);
+lval *builtin_head(lenv *env, lval *arg);
+lval *builtin_tail(lenv *env, lval *arg);
+lval *builtin_join(lenv *env, lval *arg);
 
 #endif
