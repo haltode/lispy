@@ -15,7 +15,7 @@ int main(void)
    lenv *env = lenv_new();
    lenv_add_builtins(env);
 
-   puts("Lispy Version 0.0.0.0.7");
+   puts("Lispy Version 0.0.0.0.8");
    puts("Press Ctrl+C to Exit\n");
 
    while(1) {

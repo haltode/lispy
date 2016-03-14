@@ -32,6 +32,17 @@ lval *lval_fun(lbuiltin func)
    return val;
 }
 
+lval *lval_lambda(lval *formal, lval *body)
+{
+   lval *val   = malloc(sizeof(lval));
+   val->type   = LVAL_FUN;
+   val->fun    = NULL;
+   val->env    = lenv_new();
+   val->formal = formal;
+   val->body   = body;
+   return val;
+}
+
 lval *lval_sexpr(void)
 {
    lval *val  = malloc(sizeof(lval));
@@ -77,6 +88,11 @@ void lval_del(lval *val)
          free(val->sym);
          break;
       case LVAL_FUN:
+         if(!val->fun) {
+            lenv_del(val->env);
+            lval_del(val->formal);
+            lval_del(val->body);
+         }
          break;
       case LVAL_SEXPR:
       case LVAL_QEXPR:
@@ -159,7 +175,17 @@ void lval_print(lval *val)
    switch(val->type) {
       case LVAL_NUM   : printf("%li", val->num); break;
       case LVAL_SYM   : printf("%s", val->sym); break;
-      case LVAL_FUN   : printf("<function>"); break;
+      case LVAL_FUN   : 
+         if(val->fun) 
+            printf("<function>"); 
+         else {
+            printf("(\\ "); 
+            lval_print(val->formal);
+            putchar(' ');
+            lval_print(val->body);
+            putchar(')');
+         }
+         break;
       case LVAL_SEXPR : lval_print_expr(val, '(', ')'); break;
       case LVAL_QEXPR : lval_print_expr(val, '{', '}'); break;
       case LVAL_ERR   : printf("Error: %s", val->err); break;
@@ -226,7 +252,14 @@ lval *lval_copy(lval *val)
          strcpy(x->sym, val->sym);
          break;
       case LVAL_FUN:
-         x->fun = val->fun;
+         if(val->fun)
+            x->fun    = val->fun;
+         else {
+            x->fun    = NULL;
+            x->env    = lenv_copy(val->env);
+            x->formal = lval_copy(val->formal);
+            x->body   = lval_copy(val->body);
+         }
          break;
       case LVAL_SEXPR:
       case LVAL_QEXPR:
@@ -242,6 +275,48 @@ lval *lval_copy(lval *val)
    }
 
    return x;
+}
+
+lval *lval_call(lenv *env, lval *func, lval *arg)
+{
+   // If this is a builtin, just apply it
+   if(func->fun)
+      return func->fun(env, arg);
+
+   int given, total;
+
+   given = arg->count;
+   total = func->formal->count;
+
+   while(arg->count) {
+      // If there is no more formal argument to bind
+      if(func->formal->count == 0) {
+         lval_del(arg);
+         return lval_err(  "Funtion passed too many arguments : "
+                           "got %i (expected %i)", given, total);
+      }
+
+      lval *sym = lval_pop(func->formal, 0);
+      lval *val = lval_pop(arg, 0);
+
+      lenv_put(func->env, sym, val);
+
+      lval_del(sym);
+      lval_del(val);
+   }
+
+   lval_del(arg);
+
+   // If all formals have been bound evaluate
+   if(func->formal->count == 0) {
+      func->env->parent = env;
+
+      return builtin_eval(
+               func->env, lval_add(lval_sexpr(), lval_copy(func->body)));
+   }
+   // Partially evaluated function
+   else
+      return lval_copy(func);
 }
 
 char *ltype_name(int t)

@@ -6,10 +6,11 @@
 
 lenv *lenv_new(void)
 {
-   lenv *env  = malloc(sizeof(lenv));
-   env->count = 0;
-   env->sym   = NULL;
-   env->val   = NULL;
+   lenv *env   = malloc(sizeof(lenv));
+   env->parent = NULL;
+   env->count  = 0;
+   env->sym    = NULL;
+   env->val    = NULL;
    return env;
 }
 
@@ -35,7 +36,11 @@ lval *lenv_get(lenv *env, lval *var)
       if(!strcmp(env->sym[iVar], var->sym))
          return lval_copy(env->val[iVar]);
 
-   return lval_err("Unbound symbol '%s'", var->sym);
+   // Check if the variable is in an other parent
+   if(env->parent)
+      return lenv_get(env->parent, var);
+   else
+      return lval_err("Unbound symbol '%s'", var->sym);
 }
 
 void lenv_put(lenv *env, lval *var, lval *val)
@@ -59,6 +64,33 @@ void lenv_put(lenv *env, lval *var, lval *val)
    env->val[env->count - 1] = lval_copy(val);
    env->sym[env->count - 1] = malloc(strlen(var->sym) + 1);
    strcpy(env->sym[env->count - 1], var->sym);
+}
+
+void lenv_def(lenv *env, lval *var, lval *val)
+{
+   while(env->parent)
+      env = env->parent;
+
+   lenv_put(env, var, val);
+}
+
+lenv *lenv_copy(lenv *env)
+{
+   lenv *new   = malloc(sizeof(lenv));
+
+   new->parent = env->parent;
+   new->count  = env->count;
+   new->sym    = malloc(sizeof(char*) * new->count);
+   new->val    = malloc(sizeof(lval*) * new->count);
+
+   int iVar;
+   for(iVar = 0; iVar < new->count; ++iVar) {
+      new->sym[iVar] = malloc(strlen(env->sym[iVar]) + 1);
+      strcpy(new->sym[iVar], env->sym[iVar]);
+      new->val[iVar] = lval_copy(env->val[iVar]);
+   }
+
+   return new;
 }
 
 void lenv_add_builtin(lenv *env, char *name, lbuiltin func)
@@ -97,4 +129,6 @@ void lenv_add_builtins(lenv *env)
 
    // Variable functions
    lenv_add_builtin(env, "def", builtin_def);
+   lenv_add_builtin(env, "\\", builtin_lambda);
+   lenv_add_builtin(env, "=", builtin_put);
 }

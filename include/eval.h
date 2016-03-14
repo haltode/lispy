@@ -18,6 +18,9 @@ lval *builtin_op(lenv *env, lval *arg, char *op);
 lval *builtin_eval(lenv *env, lval *arg);
 
 lval *builtin_def(lenv *env, lval *arg);
+lval *builtin_lambda(lenv *env, lval *arg);
+lval *builtin_put(lenv *env, lval *arg);
+lval *builtin_var(lenv *env, lval *arg, char *func);
 
 lval *builtin_add(lenv *env, lval *arg);
 lval *builtin_sub(lenv *env, lval *arg);

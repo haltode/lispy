@@ -38,7 +38,7 @@ lval *lval_eval_sexpr(lenv *env, lval *val)
       return error;
    }
 
-   lval *res = first->fun(env, val);
+   lval *res = lval_call(env, first, val);
    lval_del(first);
 
    return res;
@@ -123,10 +123,10 @@ lval *builtin_eval(lenv *env, lval *arg)
 {
    LASSERT(arg, arg->count != 1,
          "Function 'eval' passed too many arguments, "
-         "got %i and expected %i", arg->count, 1);
+         "got %i (expected 1)", arg->count);
    LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-         "Function 'eval' passed incorrect type "
-         ": '%s' (expected 'Q-Expression')", 
+         "Function 'eval' passed incorrect type : "
+         "'%s' (expected 'Q-Expression')", 
          ltype_name(arg->cell[0]->type))
 
    lval *x = lval_take(arg, 0);
@@ -138,25 +138,69 @@ lval *builtin_eval(lenv *env, lval *arg)
 
 lval *builtin_def(lenv *env, lval *arg)
 {
+   return builtin_var(env, arg, "def");
+}
+
+lval *builtin_lambda(lenv *env, lval *arg)
+{
+   LASSERT(arg, arg->count != 2,
+      "Function 'lambda' passed incorrect number of arguments, "
+      "got %i (expected 2)", arg->count);
    LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-      "Function 'def' passed incorrect type "
-      ": '%s' (expected 'Q-Expression')",
-      ltype_name(arg->cell[0]->type));
+      "Function 'lambda' passed incorrect type : "
+      "'%s' (expected 'Q-Expression')", ltype_name(arg->cell[0]->type));
+   LASSERT(arg, arg->cell[1]->type != LVAL_QEXPR,
+      "Function 'lambda' passed incorrect type : "
+      "'%s' (expected 'Q-Expression')", ltype_name(arg->cell[1]->type));
+
+   // Check if the first Q-Expression contains only symbols
+   int iCell;
+   for(iCell = 0; iCell < arg->cell[0]->count; ++iCell) {
+      LASSERT(arg, (arg->cell[0]->cell[iCell]->type != LVAL_SYM),
+         "Cannot define non-symbol, got '%s' (expected 'Symbol')",
+         ltype_name(arg->cell[0]->cell[iCell]->type));
+   }
+
+   // Get the component of the lambda function and return it
+   lval *formal = lval_pop(arg, 0);
+   lval *body   = lval_pop(arg, 0);
+   lval_del(arg);
+
+   return lval_lambda(formal, body);
+}
+
+lval *builtin_put(lenv *env, lval *arg)
+{
+   return builtin_var(env, arg, "=");
+}
+
+lval *builtin_var(lenv *env, lval *arg, char *func)
+{
+   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
+      "Function '%s' passed incorrect type : "
+      "'%s' (expected 'Q-Expression')",
+      func, ltype_name(arg->cell[0]->type));
 
    int iSym;
    // First argument is symbol list
    lval *sym = arg->cell[0];
    for(iSym = 0; iSym < sym->count; ++iSym)
       LASSERT(arg, sym->cell[iSym]->type != LVAL_SYM,
-         "Function 'def' cannot define non-symbol : "
-         "'%s' (expected 'Symbol')", ltype_name(sym->cell[iSym]->type));
+         "Function '%s' cannot define non-symbol : "
+         "'%s' (expected 'Symbol')", func, ltype_name(sym->cell[iSym]->type));
 
    LASSERT(arg, (sym->count != arg->count - 1),
-      "Function 'def' passed too many arguments for symbols : "
-      "got %i (expected %i)", sym->count, arg->count - 1);
+      "Function '%s' passed too many arguments for symbols : "
+      "got %i (expected %i)", func, sym->count, arg->count - 1);
 
-   for(iSym = 0; iSym < sym->count; ++iSym)
-      lenv_put(env, sym->cell[iSym], arg->cell[iSym + 1]);
+   for(iSym = 0; iSym < sym->count; ++iSym) {
+      // Define globally
+      if(!strcmp(func, "def"))
+         lenv_def(env, sym->cell[iSym], arg->cell[iSym + 1]);
+      // Define locally
+      if(!strcmp(func, "="))
+         lenv_put(env, sym->cell[iSym], arg->cell[iSym + 1]);
+   }
 
    lval_del(arg);
    return lval_sexpr();
