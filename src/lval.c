@@ -353,6 +353,36 @@ lval *lval_call(lenv *env, lval *func, lval *arg)
       return lval_copy(func);
 }
 
+int lval_eq(lval *x, lval *y)
+{
+   // Different types are always unequal
+   if(x->type != y->type)
+      return 0;
+
+   switch(x->type) {
+      case LVAL_NUM: return (x->num == y->num);
+      case LVAL_SYM: return (!strcmp(x->sym, y->sym));
+      case LVAL_FUN:
+         // Check function and then check formal/body
+         if(x->fun || y->fun)
+            return (x->fun == y->fun);
+         else
+            return (lval_eq(x->formal, y->formal) && lval_eq(x->body, y->body));
+      case LVAL_SEXPR:
+      case LVAL_QEXPR:
+         // Check every cell
+         if(x->count != y->count)
+            return 0;
+         for(int iCell = 0; iCell < x->count; ++iCell)
+            if(!lval_eq(x->cell[iCell], y->cell[iCell]))
+               return 0;
+         return 1;
+      case LVAL_ERR: return (!strcmp(x->err, y->err));
+   }
+
+   return 0;
+}
+
 char *ltype_name(int t)
 {
    switch(t) {

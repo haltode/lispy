@@ -69,6 +69,7 @@ lval *lval_take(lval *val, int iChild);
 lval *lval_join(lval *x, lval *y);
 lval *lval_copy(lval *val);
 lval *lval_call(lenv *env, lval *fun, lval *arg);
+int lval_eq(lval *x, lval *y);
 char *ltype_name(int t);
 
 /* ---------- lenv ---------- */

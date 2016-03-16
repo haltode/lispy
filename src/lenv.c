@@ -131,4 +131,13 @@ void lenv_add_builtins(lenv *env)
    lenv_add_builtin(env, "def", builtin_def);
    lenv_add_builtin(env, "\\", builtin_lambda);
    lenv_add_builtin(env, "=", builtin_put);
+
+   // Comparison functions
+   lenv_add_builtin(env, "if", builtin_if);
+   lenv_add_builtin(env, ">", builtin_gt);
+   lenv_add_builtin(env, "<", builtin_lt);
+   lenv_add_builtin(env, ">=", builtin_ge);
+   lenv_add_builtin(env, "<=", builtin_le);
+   lenv_add_builtin(env, "==", builtin_eq);
+   lenv_add_builtin(env, "!=", builtin_ne);
 }

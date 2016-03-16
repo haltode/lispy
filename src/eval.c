@@ -121,13 +121,8 @@ lval *builtin_op(lenv *env, lval *arg, char *op)
 
 lval *builtin_eval(lenv *env, lval *arg)
 {
-   LASSERT(arg, arg->count != 1,
-         "Function 'eval' passed too many arguments, "
-         "got %i (expected 1)", arg->count);
-   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-         "Function 'eval' passed incorrect type : "
-         "'%s' (expected 'Q-Expression')", 
-         ltype_name(arg->cell[0]->type))
+   LASSERT_ARG("eval", arg, 1);
+   LASSERT_TYPE("eval", arg, 0, LVAL_QEXPR);
 
    lval *x = lval_take(arg, 0);
    x->type = LVAL_SEXPR;
@@ -143,16 +138,10 @@ lval *builtin_def(lenv *env, lval *arg)
 
 lval *builtin_lambda(lenv *env, lval *arg)
 {
-   LASSERT(arg, arg->count != 2,
-      "Function 'lambda' passed incorrect number of arguments, "
-      "got %i (expected 2)", arg->count);
-   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-      "Function 'lambda' passed incorrect type : "
-      "'%s' (expected 'Q-Expression')", ltype_name(arg->cell[0]->type));
-   LASSERT(arg, arg->cell[1]->type != LVAL_QEXPR,
-      "Function 'lambda' passed incorrect type : "
-      "'%s' (expected 'Q-Expression')", ltype_name(arg->cell[1]->type));
-
+   LASSERT_ARG("lambda", arg, 2);
+   LASSERT_TYPE("lambda", arg, 0, LVAL_QEXPR);
+   LASSERT_TYPE("lambda", arg, 1, LVAL_QEXPR);
+   
    // Check if the first Q-Expression contains only symbols
    int iCell;
    for(iCell = 0; iCell < arg->cell[0]->count; ++iCell) {
@@ -176,11 +165,8 @@ lval *builtin_put(lenv *env, lval *arg)
 
 lval *builtin_var(lenv *env, lval *arg, char *func)
 {
-   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-      "Function '%s' passed incorrect type : "
-      "'%s' (expected 'Q-Expression')",
-      func, ltype_name(arg->cell[0]->type));
-
+   LASSERT_TYPE(func, arg, 0, LVAL_QEXPR);
+   
    int iSym;
    // First argument is symbol list
    lval *sym = arg->cell[0];
@@ -258,15 +244,9 @@ lval *builtin_list(lenv *env, lval *arg)
 
 lval *builtin_head(lenv *env, lval *arg)
 {
-   LASSERT(arg, arg->count != 1,
-         "Function 'head' passed too many arguments : "
-         "got %i (expected 1)", arg->count);
-   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-         "Function 'head' passed incorrect type for argument 0 : "
-         "'%s' (expected 'Q-Expression')",
-         ltype_name(arg->cell[0]->type));
-   LASSERT(arg, arg->cell[0]->count == 0,
-         "Function 'head' passed {}");
+   LASSERT_ARG("head", arg, 1);
+   LASSERT_TYPE("head", arg, 0, LVAL_QEXPR);
+   LASSERT(arg, arg->cell[0]->count == 0, "Function 'head' passed {}");
 
    // Take the first argument and delete all the elements that are not the head
    lval *first = lval_take(arg, 0);
@@ -277,15 +257,9 @@ lval *builtin_head(lenv *env, lval *arg)
 
 lval *builtin_tail(lenv *env, lval *arg)
 {
-   LASSERT(arg, arg->count != 1,
-      "Function 'tail' passed too many arguments : "
-      "got %i (expected 1)", arg->count);
-   LASSERT(arg, arg->cell[0]->type != LVAL_QEXPR,
-      "Function 'tail' passed incorrect type for argument 0 : "
-      "'%s' (expected 'Q-Expression')",
-      ltype_name(arg->cell[0]->type));
-   LASSERT(arg, arg->cell[0]->count == 0,
-      "Function 'tail' passed {}");
+   LASSERT_ARG("tail", arg, 1);
+   LASSERT_TYPE("tail", arg, 0, LVAL_QEXPR);
+   LASSERT(arg, arg->cell[0]->count == 0, "Function 'tail' passed {}");
 
    // Take the first argument and delete every elements until it reach the tail
    lval *first = lval_take(arg, 0);
@@ -297,10 +271,7 @@ lval *builtin_join(lenv *env, lval *arg)
 {
    int iCell;
    for(iCell = 0; iCell < arg->count; ++iCell)
-      LASSERT(arg, arg->cell[iCell]->type != LVAL_QEXPR,
-            "Function 'join' passed incorrect type : "
-            "'%s' (expected 'Q-Expression')",
-            ltype_name(arg->cell[iCell]->type));
+      LASSERT_TYPE("join", arg, iCell, LVAL_QEXPR);
    
    lval *x = lval_pop(arg, 0);
    while(arg->count) {
@@ -310,4 +281,92 @@ lval *builtin_join(lenv *env, lval *arg)
 
    lval_del(arg);
    return x;
+}
+
+/* ---------- Conditional operators ---------- */
+
+lval *builtin_if(lenv *env, lval *arg)
+{
+   LASSERT_ARG("if", arg, 3);
+   LASSERT_TYPE("if", arg, 0, LVAL_NUM);
+   LASSERT_TYPE("if", arg, 1, LVAL_QEXPR);
+   LASSERT_TYPE("if", arg, 2, LVAL_QEXPR);
+
+   lval *x;
+
+   // Mark the expressions as evaluable
+   arg->cell[1]->type = LVAL_SEXPR;
+   arg->cell[2]->type = LVAL_SEXPR;
+
+   if(arg->cell[0]->num)
+      x = lval_eval(env, lval_pop(arg, 1));
+   else
+      x = lval_eval(env, lval_pop(arg, 2));
+
+   lval_del(arg);
+   return x;
+}
+
+lval *builtin_ord(lenv *env, lval *arg, char *op)
+{
+   LASSERT_ARG(op, arg, 2);
+   LASSERT_TYPE(op, arg, 0, LVAL_NUM);
+   LASSERT_TYPE(op, arg, 1, LVAL_NUM);
+   
+   int res;
+   if(!strcmp(op, ">"))
+      res = (arg->cell[0]->num > arg->cell[1]->num);
+   if(!strcmp(op, "<"))
+      res = (arg->cell[0]->num < arg->cell[1]->num);
+   if(!strcmp(op, ">="))
+      res = (arg->cell[0]->num >= arg->cell[1]->num);
+   if(!strcmp(op, "<="))
+      res = (arg->cell[0]->num <= arg->cell[1]->num);
+
+   lval_del(arg);
+   return lval_num(res);
+}
+
+lval *builtin_cmp(lenv *env, lval *arg, char *op)
+{
+   LASSERT_ARG(op, arg, 2);
+
+   int res;
+   if(!strcmp(op, "=="))
+      res = lval_eq(arg->cell[0], arg->cell[1]);
+   if(!strcmp(op, "!="))
+      res = !lval_eq(arg->cell[0], arg->cell[1]);
+
+   lval_del(arg);
+   return lval_num(res);
+}
+
+lval *builtin_gt(lenv *env, lval *arg)
+{
+   return builtin_ord(env, arg, ">");
+}
+
+lval *builtin_lt(lenv *env, lval *arg)
+{
+   return builtin_ord(env, arg, "<");
+}
+
+lval *builtin_ge(lenv *env, lval *arg)
+{
+   return builtin_ord(env, arg, ">=");
+}
+
+lval *builtin_le(lenv *env, lval *arg)
+{
+   return builtin_ord(env, arg, "<=");
+}
+
+lval *builtin_eq(lenv *env, lval *arg)
+{
+   return builtin_cmp(env, arg, "==");
+}
+
+lval *builtin_ne(lenv *env, lval *arg)
+{
+   return builtin_cmp(env, arg, "!=");
 }
