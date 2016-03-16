@@ -297,6 +297,23 @@ lval *lval_call(lenv *env, lval *func, lval *arg)
       }
 
       lval *sym = lval_pop(func->formal, 0);
+
+      // Special case : symbol &
+      if(!strcmp(sym->sym, "&")) {
+         // Check if the symbol & is followed by another symbol
+         if(func->formal->count != 1) {
+            lval_del(arg);
+            return lval_err("Function format invalid : symbol '&' not followed "
+                     "by single symbol");
+         }
+
+         lval *next_sym = lval_pop(func->formal, 0);
+         lenv_put(func->env, next_sym, builtin_list(env, arg));
+         lval_del(sym);
+         lval_del(next_sym);
+         break;
+      }
+
       lval *val = lval_pop(arg, 0);
 
       lenv_put(func->env, sym, val);
@@ -306,6 +323,23 @@ lval *lval_call(lenv *env, lval *func, lval *arg)
    }
 
    lval_del(arg);
+
+   // If there is still a '&' symbol, bind it to empty list
+   if(func->formal->count > 0 &&
+      !strcmp(func->formal->cell[0]->sym, "&")) {
+      if(func->formal->count != 2)
+         return lval_err("Function format invalid : symbol '&' not followed by "
+                  "single symbol");
+
+      lval_del(lval_pop(func->formal, 0));
+
+      lval *sym = lval_pop(func->formal, 0);
+      lval *val = lval_qexpr();
+
+      lenv_put(func->env, sym, val);
+      lval_del(sym);
+      lval_del(val);
+   }
 
    // If all formals have been bound evaluate
    if(func->formal->count == 0) {
