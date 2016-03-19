@@ -111,7 +111,7 @@ void lenv_add_builtins(lenv *env)
    lenv_add_builtin(env, "eval", builtin_eval);
    lenv_add_builtin(env, "join", builtin_join);
 
-   // Mathematical Functions
+   // Mathematical functions
    lenv_add_builtin(env, "+", builtin_add);
    lenv_add_builtin(env, "-", builtin_sub);
    lenv_add_builtin(env, "*", builtin_mul);
@@ -140,4 +140,9 @@ void lenv_add_builtins(lenv *env)
    lenv_add_builtin(env, "<=", builtin_le);
    lenv_add_builtin(env, "==", builtin_eq);
    lenv_add_builtin(env, "!=", builtin_ne);
+
+   // String functions
+   lenv_add_builtin(env, "load",  builtin_load); 
+   lenv_add_builtin(env, "error", builtin_error);
+   lenv_add_builtin(env, "print", builtin_print);
 }

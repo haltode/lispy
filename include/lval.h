@@ -18,6 +18,7 @@ struct lval {
 
    // Basic
    long num;
+   char *str;
    char *sym;
    char *err;
 
@@ -42,11 +43,14 @@ struct lenv {
 };
 
 // Possible lval types
-enum { LVAL_NUM, LVAL_SYM, LVAL_FUN, LVAL_SEXPR, LVAL_QEXPR, LVAL_ERR };
+enum {   LVAL_NUM, LVAL_STR, LVAL_SYM, LVAL_FUN, 
+         LVAL_SEXPR, LVAL_QEXPR, 
+         LVAL_ERR };
 
 
 /* ---------- lval ---------- */
 lval *lval_num(long num);
+lval *lval_str(char *str);
 lval *lval_sym(char *sym);
 lval *lval_fun(lbuiltin func);
 lval *lval_lambda(lval *formal, lval *body);
@@ -56,11 +60,13 @@ lval *lval_err(char *fmt, ...);
 
 void lval_del(lval *val);
 
-lval *lval_read_num(mpc_ast_t *t);
-lval *lval_read(mpc_ast_t *t);
+lval *lval_read_num(mpc_ast_t *token);
+lval *lval_read_str(mpc_ast_t *token);
+lval *lval_read(mpc_ast_t *token);
 lval *lval_add(lval *val, lval *x);
 
 void lval_print_expr(lval *val, char open, char close);
+void lval_print_str(lval *val);
 void lval_print(lval *val);
 void lval_println(lval *val);
 

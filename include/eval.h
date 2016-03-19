@@ -57,4 +57,8 @@ lval *builtin_le(lenv *env, lval *arg);
 lval *builtin_eq(lenv *env, lval *arg);
 lval *builtin_ne(lenv *env, lval *arg);
 
+lval *builtin_load(lenv *env, lval *arg);
+lval *builtin_print(lenv *env, lval *arg);
+lval *builtin_error(lenv *env, lval *arg);
+
 #endif

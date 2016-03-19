@@ -15,6 +15,15 @@ lval *lval_num(long num)
    return val;
 }
 
+lval *lval_str(char *str)
+{
+   lval *val = malloc(sizeof(lval));
+   val->type = LVAL_STR;
+   val->str  = malloc(strlen(str) + 1);
+   strcpy(val->str, str);
+   return val;
+}
+
 lval *lval_sym(char *sym)
 {
    lval *val = malloc(sizeof(lval));
@@ -84,6 +93,9 @@ void lval_del(lval *val)
    switch(val->type) {
       case LVAL_NUM:
          break;
+      case LVAL_STR:
+         free(val->str);
+         break;
       case LVAL_SYM:
          free(val->sym);
          break;
@@ -118,10 +130,26 @@ lval *lval_read_num(mpc_ast_t *token)
    return errno != ERANGE ? lval_num(x) : lval_err("Invalid number");
 }
 
+lval *lval_read_str(mpc_ast_t *token)
+{
+   // Remove the final quote character
+   token->contents[strlen(token->contents) - 1] = '\0';
+
+   // Copy the string (starting after the first quote character)
+   char *unescaped = malloc(strlen(token->contents + 1) + 1);
+   strcpy(unescaped, token->contents + 1);
+
+   unescaped = mpcf_unescape(unescaped);
+   lval *str = lval_str(unescaped);
+   free(unescaped);
+   return str;
+}
+
 lval *lval_read(mpc_ast_t *token)
 {
-   // Numbers and symbols don't need any special treatment
+   // Numbers, strings and symbols don't need any special treatment
    if(strstr(token->tag, "number")) return lval_read_num(token);
+   if(strstr(token->tag, "string")) return lval_read_str(token);
    if(strstr(token->tag, "symbol")) return lval_sym(token->contents);
 
    // If this is arg root (>) or an sexpr/qexpr
@@ -135,7 +163,8 @@ lval *lval_read(mpc_ast_t *token)
    // Fill the list that we previously made using recursion
    int iChild;
    for(iChild = 0; iChild < token->children_num; ++iChild) {
-      if( !strcmp(token->children[iChild]->contents, "(") ||
+      if( strstr(token->children[iChild]->tag, "comment") || 
+          !strcmp(token->children[iChild]->contents, "(") ||
           !strcmp(token->children[iChild]->contents, ")") ||
           !strcmp(token->children[iChild]->contents, "{") ||
           !strcmp(token->children[iChild]->contents, "}") ||
@@ -170,10 +199,22 @@ void lval_print_expr(lval *val, char open, char close)
    putchar(close);
 }
 
+void lval_print_str(lval *val)
+{
+   char *escaped = malloc(strlen(val->str) + 1);
+   strcpy(escaped, val->str);
+   escaped = mpcf_escape(escaped);
+
+   printf("\"%s\"", escaped);
+
+   free(escaped);
+}
+
 void lval_print(lval *val)
 {
    switch(val->type) {
       case LVAL_NUM   : printf("%li", val->num); break;
+      case LVAL_STR   : lval_print_str(val); break;
       case LVAL_SYM   : printf("%s", val->sym); break;
       case LVAL_FUN   : 
          if(val->fun) 
@@ -246,6 +287,10 @@ lval *lval_copy(lval *val)
    switch(val->type) {
       case LVAL_NUM:
          x->num = val->num;
+         break;
+      case LVAL_STR:
+         x->str = malloc(strlen(val->str) + 1);
+         strcpy(x->str, val->str);
          break;
       case LVAL_SYM:
          x->sym = malloc(strlen(val->sym) + 1);
@@ -361,6 +406,7 @@ int lval_eq(lval *x, lval *y)
 
    switch(x->type) {
       case LVAL_NUM: return (x->num == y->num);
+      case LVAL_STR: return (!strcmp(x->str, y->str));
       case LVAL_SYM: return (!strcmp(x->sym, y->sym));
       case LVAL_FUN:
          // Check function and then check formal/body
@@ -387,6 +433,7 @@ char *ltype_name(int t)
 {
    switch(t) {
       case LVAL_NUM   : return "Number";
+      case LVAL_STR   : return "String";
       case LVAL_SYM   : return "Symbol";
       case LVAL_FUN   : return "Function";
       case LVAL_SEXPR : return "S-Expression";

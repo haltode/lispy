@@ -3,6 +3,10 @@
 
 #include "eval.h"
 #include "lval.h"
+#include "parser.h"
+
+mpc_parser_t *Lispy;
+
 
 /* ---------- lval eval ---------- */
 
@@ -369,4 +373,65 @@ lval *builtin_eq(lenv *env, lval *arg)
 lval *builtin_ne(lenv *env, lval *arg)
 {
    return builtin_cmp(env, arg, "!=");
+}
+
+/* ---------- String operators ---------- */
+
+lval *builtin_load(lenv *env, lval *arg)
+{
+   LASSERT_ARG("load", arg, 1);
+   LASSERT_TYPE("load", arg, 0, LVAL_STR);
+
+   // Parse file given by string name
+   mpc_result_t res;
+   if(mpc_parse_contents(arg->cell[0]->str, Lispy, &res)) {
+      lval *expr = lval_read(res.output);
+      mpc_ast_delete(res.output);
+
+      while(expr->count) {
+         lval *x = lval_eval(env, lval_pop(expr, 0));
+         if(x->type == LVAL_ERR)
+            lval_println(x);
+         lval_del(x);
+      }
+
+      lval_del(expr);
+      lval_del(arg);
+
+      return lval_sexpr();
+   }
+   else {
+      char *err_msg = mpc_err_string(res.error);
+      mpc_err_delete(res.error);
+
+      lval *err = lval_err("Could not load library '%s'", err_msg);
+      free(err_msg);
+      lval_del(arg);
+
+      return err;
+   }
+}
+
+lval *builtin_print(lenv *env, lval *arg)
+{
+   int iCell;
+   for(iCell = 0; iCell < arg->count; ++iCell) {
+      lval_print(arg->cell[iCell]);
+      putchar(' ');
+   }
+
+   putchar('\n');
+   lval_del(arg);
+
+   return lval_sexpr();
+}
+
+lval *builtin_error(lenv *env, lval *arg)
+{
+   LASSERT_ARG("error", arg, 1);
+   LASSERT_TYPE("error", arg, 0, LVAL_STR);
+
+   lval *err = lval_err(arg->cell[0]->str);
+   lval_del(arg);
+   return err;
 }
