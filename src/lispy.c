@@ -24,9 +24,13 @@ int main(int argc, char **argv)
    lenv *env = lenv_new();
    lenv_add_builtins(env);
 
+   // Load standard library
+   lval *lib = lval_add(lval_sexpr(), lval_str("lib/stdlib.lspy"));
+   builtin_load(env, lib);
+
    // Interactive prompt
    if(argc == 1) {
-      puts("Lispy Version 0.0.0.1.0");
+      puts("Lispy Version 0.0.0.1.1");
       puts("Press Ctrl+C to Exit\n");
 
       while(1) {
